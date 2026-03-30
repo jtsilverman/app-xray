@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>App X-Ray Report: {{ report.apk_info.package_name }}</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0d1117; color: #e6edf3; padding: 2rem; max-width: 900px; margin: 0 auto; }
+h1 { font-size: 1.5rem; color: #58a6ff; margin-bottom: 0.5rem; }
+h2 { font-size: 1.2rem; color: #8b949e; margin: 2rem 0 1rem; border-bottom: 1px solid #21262d; padding-bottom: 0.5rem; }
+.header { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1.5rem; margin-bottom: 1.5rem; }
+.meta { color: #8b949e; font-size: 0.9rem; margin-top: 0.5rem; }
+.score-container { text-align: center; margin: 2rem 0; }
+.score { font-size: 3rem; font-weight: bold; }
+.score-label { color: #8b949e; font-size: 0.9rem; }
+.score-good { color: #3fb950; }
+.score-mid { color: #d29922; }
+.score-bad { color: #f85149; }
+.breakdown { font-size: 0.85rem; color: #8b949e; margin-top: 0.5rem; }
+.breakdown span { margin-right: 1rem; }
+table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+th { text-align: left; padding: 0.6rem; background: #161b22; border-bottom: 1px solid #30363d; font-size: 0.85rem; color: #8b949e; }
+td { padding: 0.6rem; border-bottom: 1px solid #21262d; font-size: 0.85rem; }
+.dangerous { color: #f85149; font-weight: bold; }
+.normal { color: #d29922; }
+.signature { color: #8b949e; }
+.yes { color: #3fb950; }
+.no { color: #f85149; }
+.tracker-name { color: #f85149; font-weight: bold; }
+.high { background: #f8514922; color: #f85149; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.medium { background: #d2992222; color: #d29922; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.low { background: #8b949e22; color: #8b949e; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+.cert { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; font-size: 0.85rem; }
+.cert-debug { border-color: #f85149; }
+.summary { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 1rem; margin-top: 2rem; }
+.footer { text-align: center; color: #484f58; font-size: 0.8rem; margin-top: 2rem; }
+.empty { color: #3fb950; font-style: italic; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>{{ report.apk_info.package_name }}</h1>
+  <div class="meta">
+    Version {{ report.apk_info.version_name }} (code {{ report.apk_info.version_code }}) |
+    Target SDK {{ report.apk_info.target_sdk }} | Min SDK {{ report.apk_info.min_sdk }} |
+    {{ "%.1f"|format(report.apk_info.file_size / 1048576) }} MB
+  </div>
+  <div class="meta">SHA-256: {{ report.apk_info.sha256 }}</div>
+</div>
+
+<div class="score-container">
+  {% if report.privacy_score >= 80 %}
+  <div class="score score-good">{{ report.privacy_score }}/100</div>
+  {% elif report.privacy_score >= 50 %}
+  <div class="score score-mid">{{ report.privacy_score }}/100</div>
+  {% else %}
+  <div class="score score-bad">{{ report.privacy_score }}/100</div>
+  {% endif %}
+  <div class="score-label">Privacy Score</div>
+  {% if report.score_breakdown %}
+  <div class="breakdown">
+    {% for key, val in report.score_breakdown.items() %}
+    {% if val != 0 %}
+    <span>{{ key }}: {{ "%+d"|format(val) }}</span>
+    {% endif %}
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<h2>Permissions ({{ report.permissions|length }})</h2>
+<table>
+  <tr><th>Permission</th><th>Level</th><th>Used</th><th>Description</th></tr>
+  {% for p in report.permissions %}
+  <tr>
+    <td>{{ p.name.replace("android.permission.", "") }}</td>
+    <td class="{{ p.protection_level }}">{{ p.protection_level }}</td>
+    <td class="{{ 'yes' if p.used_in_code else 'no' }}">{{ "yes" if p.used_in_code else "?" }}</td>
+    <td>{{ p.description }}</td>
+  </tr>
+  {% endfor %}
+</table>
+
+<h2>Trackers ({{ report.trackers|length }})</h2>
+{% if report.trackers %}
+<table>
+  <tr><th>Tracker</th><th>Category</th><th>Matched Classes</th></tr>
+  {% for t in report.trackers %}
+  <tr>
+    <td class="tracker-name">{{ t.name }}</td>
+    <td>{{ t.category }}</td>
+    <td style="color:#8b949e">{{ t.matched_classes[:3]|join(", ") }}{% if t.matched_classes|length > 3 %} (+{{ t.matched_classes|length - 3 }} more){% endif %}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p class="empty">No known trackers detected</p>
+{% endif %}
+
+<h2>Network Endpoints ({{ report.endpoints|length }})</h2>
+{% if report.endpoints %}
+<table>
+  <tr><th>Domain</th><th>URL</th><th>HTTPS</th><th>Source</th></tr>
+  {% for e in report.endpoints %}
+  <tr>
+    <td>{{ e.domain }}</td>
+    <td style="color:#8b949e;max-width:300px;overflow:hidden;text-overflow:ellipsis">{{ e.url }}</td>
+    <td class="{{ 'yes' if e.is_https else 'no' }}">{{ "yes" if e.is_https else "NO" }}</td>
+    <td style="color:#8b949e">{{ e.source_class }}.{{ e.source_method }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% else %}
+<p style="color:#8b949e">No network endpoints found</p>
+{% endif %}
+
+{% if report.suspicious_patterns %}
+<h2>Suspicious Patterns ({{ report.suspicious_patterns|length }})</h2>
+<table>
+  <tr><th>Type</th><th>Severity</th><th>Description</th><th>Location</th></tr>
+  {% for sp in report.suspicious_patterns %}
+  <tr>
+    <td>{{ sp.pattern_type }}</td>
+    <td><span class="{{ sp.severity }}">{{ sp.severity }}</span></td>
+    <td>{{ sp.description }}</td>
+    <td style="color:#8b949e">{{ sp.location }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endif %}
+
+{% if report.certificate %}
+<h2>Certificate</h2>
+<div class="cert {{ 'cert-debug' if report.certificate.is_debug else '' }}">
+  <div>Issuer: {{ report.certificate.issuer }}</div>
+  <div>Subject: {{ report.certificate.subject }}</div>
+  <div>Serial: {{ report.certificate.serial_number }}</div>
+  <div>Valid: {{ report.certificate.valid_from }} to {{ report.certificate.valid_to }}</div>
+  <div>SHA-256: {{ report.certificate.sha256_fingerprint }}</div>
+  {% if report.certificate.is_debug %}
+  <div style="color:#f85149;font-weight:bold;margin-top:0.5rem">WARNING: Debug certificate detected</div>
+  {% endif %}
+</div>
+{% endif %}
+
+<div class="summary">
+  <h2 style="margin-top:0;border:none;padding:0">Summary</h2>
+  <div>Permissions: {{ report.permissions|length }} total, {{ report.permissions|selectattr("protection_level","eq","dangerous")|list|length }} dangerous</div>
+  <div>Trackers: {{ report.trackers|length }} detected</div>
+  <div>Endpoints: {{ report.endpoints|length }} total, {{ report.endpoints|rejectattr("is_https")|list|length }} HTTP (insecure)</div>
+  <div>Suspicious patterns: {{ report.suspicious_patterns|length }}</div>
+</div>
+
+<div class="footer">
+  Generated by App X-Ray v{{ version }} | {{ report.scan_timestamp }}
+</div>
+
+</body>
+</html>
