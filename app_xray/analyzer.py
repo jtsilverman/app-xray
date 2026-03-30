@@ -20,12 +20,18 @@ def analyze_apk(apk_path: str) -> AuditReport:
     with open(apk_path, "rb") as f:
         sha256 = hashlib.sha256(f.read()).hexdigest()
 
+    def _safe_int(val) -> int:
+        try:
+            return int(val) if val else 0
+        except (ValueError, TypeError):
+            return 0
+
     apk_info = APKInfo(
         package_name=a.get_package(),
         version_name=a.get_androidversion_name() or "unknown",
-        version_code=int(a.get_androidversion_code() or 0),
-        target_sdk=int(a.get_target_sdk_version() or 0),
-        min_sdk=int(a.get_min_sdk_version() or 0),
+        version_code=_safe_int(a.get_androidversion_code()),
+        target_sdk=_safe_int(a.get_target_sdk_version()),
+        min_sdk=_safe_int(a.get_min_sdk_version()),
         file_size=file_size,
         sha256=sha256,
     )
