@@ -62,6 +62,13 @@ class CertificateInfo:
 
 
 @dataclass
+class NetworkCallPath:
+    sink: str
+    chain: list[str]
+    entry_type: str
+
+
+@dataclass
 class AuditReport:
     apk_info: APKInfo
     permissions: list[Permission] = field(default_factory=list)
@@ -69,6 +76,7 @@ class AuditReport:
     endpoints: list[Endpoint] = field(default_factory=list)
     suspicious_patterns: list[SuspiciousPattern] = field(default_factory=list)
     certificate: CertificateInfo | None = None
+    network_paths: list[NetworkCallPath] = field(default_factory=list)
     privacy_score: int = 100
     score_breakdown: dict = field(default_factory=dict)
     scan_timestamp: str = ""

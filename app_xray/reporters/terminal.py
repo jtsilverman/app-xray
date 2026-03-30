@@ -131,6 +131,26 @@ def print_report(report: AuditReport):
             )
         console.print(pat_table)
 
+    # Network Call Paths
+    if report.network_paths:
+        console.print()
+        console.print(f"[bold]Network Call Paths ({len(report.network_paths)})[/bold]")
+        console.print()
+        for i, path in enumerate(report.network_paths, 1):
+            entry_style = {
+                "Activity": "green",
+                "Service": "yellow",
+                "BroadcastReceiver": "magenta",
+                "Fragment": "cyan",
+            }.get(path.entry_type, "dim")
+            console.print(f"  [{entry_style}][{path.entry_type}][/{entry_style}] -> [red bold]{path.sink}[/red bold]")
+            for j, step in enumerate(path.chain):
+                if step == "[library]":
+                    console.print(f"    [dim]  ... (library internals) ...[/dim]")
+                else:
+                    console.print(f"      {step}")
+            console.print()
+
     # Certificate
     if report.certificate:
         console.print()

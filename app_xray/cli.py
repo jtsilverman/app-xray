@@ -18,7 +18,8 @@ def main():
 @click.argument("apk_path", type=click.Path(exists=True))
 @click.option("--format", "output_format", type=click.Choice(["terminal", "html", "json"]), default="terminal")
 @click.option("--output", "-o", "output_path", type=click.Path(), help="Output file path (for html/json)")
-def scan(apk_path: str, output_format: str, output_path: str | None):
+@click.option("--trace/--no-trace", default=False, help="Trace network call paths (slower)")
+def scan(apk_path: str, output_format: str, output_path: str | None, trace: bool):
     """Scan an APK file and generate a privacy audit report."""
     if not apk_path.endswith(".apk"):
         click.echo("Error: File must be an .apk file", err=True)
@@ -26,7 +27,7 @@ def scan(apk_path: str, output_format: str, output_path: str | None):
 
     from app_xray.analyzer import analyze_apk
 
-    report = analyze_apk(apk_path)
+    report = analyze_apk(apk_path, trace_network=trace)
 
     if output_format == "terminal":
         from app_xray.reporters.terminal import print_report

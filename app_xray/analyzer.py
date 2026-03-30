@@ -12,7 +12,7 @@ from androguard.misc import AnalyzeAPK as _analyze_apk
 from app_xray.models import APKInfo, AuditReport
 
 
-def analyze_apk(apk_path: str) -> AuditReport:
+def analyze_apk(apk_path: str, trace_network: bool = False) -> AuditReport:
     """Run full privacy audit on an APK file."""
     a, d, dx = _analyze_apk(apk_path)
 
@@ -54,6 +54,11 @@ def analyze_apk(apk_path: str) -> AuditReport:
     from app_xray.extractors.certificates import extract_certificate
     certificate = extract_certificate(a)
 
+    network_paths = []
+    if trace_network:
+        from app_xray.extractors.network_paths import trace_network_calls
+        network_paths = trace_network_calls(dx)
+
     from app_xray.scoring import calculate_score
     score, breakdown = calculate_score(permissions, trackers, endpoints, suspicious)
 
@@ -64,6 +69,7 @@ def analyze_apk(apk_path: str) -> AuditReport:
         endpoints=endpoints,
         suspicious_patterns=suspicious,
         certificate=certificate,
+        network_paths=network_paths,
         privacy_score=score,
         score_breakdown=breakdown,
         scan_timestamp=datetime.now(timezone.utc).isoformat(),
